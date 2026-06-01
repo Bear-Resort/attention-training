@@ -2,9 +2,15 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Game } from "@/pages/Game";
 import { Home } from "@/pages/Home";
 
+function getRouterBasename() {
+  const base = import.meta.env.BASE_URL;
+  if (base === "/") return undefined;
+  return base.replace(/\/$/, "");
+}
+
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={getRouterBasename()}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/game/:levelId" element={<Game />} />
