@@ -14,7 +14,6 @@ import {
   updateBestSumSquaredDistances,
 } from "@/lib/game/progress";
 import { useProgress } from "@/lib/useProgress";
-import type { Level } from "@/lib/game/types";
 
 type GameResult = {
   elapsedMs: number;
@@ -22,8 +21,8 @@ type GameResult = {
 };
 
 export function useGameLevel(levelId: number) {
-  const [level, setLevel] = useState<Level>(() => generateLevel(levelId));
-  const [input, setInput] = useState("");
+  const level = useMemo(() => generateLevel(levelId), [levelId]);
+  const [input, setInput] = useState(() => getFunctionDraft(levelId) ?? "");
   const [startedAt, setStartedAt] = useState(() => Date.now());
   const [elapsedMs, setElapsedMs] = useState(0);
   const [hasWon, setHasWon] = useState(false);
@@ -64,12 +63,10 @@ export function useGameLevel(levelId: number) {
 
   useEffect(() => {
     const stored = getLevelBest(levelId);
-    const savedInput = getFunctionDraft(levelId) ?? "";
 
     sessionBaselineBestRef.current =
       stored?.bestSumSquaredDistances ?? null;
-    setLevel(generateLevel(levelId));
-    setInput(savedInput);
+    setInput(getFunctionDraft(levelId) ?? "");
     setStartedAt(Date.now());
     setElapsedMs(0);
     setShowSuccessOverlay(false);
@@ -111,7 +108,7 @@ export function useGameLevel(levelId: number) {
 
   // Whenever a current distance is shown, compare to localStorage and update if better.
   useEffect(() => {
-    if (currentDistance === null) return;
+    if (currentDistance === null || level.id !== levelId) return;
 
     const stored = getLevelBest(levelId);
 
@@ -145,7 +142,7 @@ export function useGameLevel(levelId: number) {
             },
       );
     }
-  }, [currentDistance, levelId, startedAt]);
+  }, [currentDistance, level.id, levelId, startedAt]);
 
   const dismissSuccessOverlay = useCallback(() => {
     setShowSuccessOverlay(false);
@@ -153,7 +150,6 @@ export function useGameLevel(levelId: number) {
 
   const resetLevel = useCallback(() => {
     sessionBaselineBestRef.current = null;
-    setLevel(generateLevel(levelId));
     setInput("");
     clearFunctionDraft(levelId);
     setStartedAt(Date.now());

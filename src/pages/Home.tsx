@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { HomeProgress } from "@/components/HomeProgress";
 import { LevelMap } from "@/components/LevelMap";
 import { useLanguage } from "@/lib/useLanguage";
 
@@ -26,6 +27,7 @@ export function Home() {
           <br />
           <h2 className="text-center text-xl">{subtitle}</h2>
         </div>
+        <HomeProgress />
         <LevelMap />
       </div>
     </>

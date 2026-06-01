@@ -41,3 +41,8 @@ export function clearFunctionDraft(levelId: number) {
   delete drafts[String(levelId)];
   writeDrafts(drafts);
 }
+
+export function clearAllFunctionDrafts() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(STORAGE_KEY);
+}

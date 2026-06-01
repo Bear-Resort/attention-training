@@ -1,4 +1,6 @@
 import { formatDuration, formatMetric } from "@/lib/game/metrics";
+import { DialogPortal } from "@/components/ui/dialog-portal";
+import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/useLanguage";
 
 type SuccessOverlayProps = {
@@ -6,6 +8,7 @@ type SuccessOverlayProps = {
   sumSquaredDistances: number;
   onKeepImproving: () => void;
   onContinue: () => void;
+  onReturnHome: () => void;
   showNextLevel: boolean;
 };
 
@@ -16,7 +19,7 @@ const copy = {
     distance: "Best sum of squared distances",
     improve: "Keep improving",
     next: "Next level",
-    map: "Back to levels",
+    home: "Return to home",
   },
   zh: {
     title: "关卡完成",
@@ -24,7 +27,7 @@ const copy = {
     distance: "最佳距离平方和",
     improve: "继续优化",
     next: "下一关",
-    map: "返回关卡",
+    home: "返回首页",
   },
 };
 
@@ -33,13 +36,15 @@ export function SuccessOverlay({
   sumSquaredDistances,
   onKeepImproving,
   onContinue,
+  onReturnHome,
   showNextLevel,
 }: SuccessOverlayProps) {
   const language = useLanguage();
   const t = copy[language];
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-green-600/20 px-4 backdrop-blur-sm">
+    <DialogPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-green-600/20 px-4 backdrop-blur-sm">
       <div className="fade-in w-full max-w-md rounded-xl border border-green-500/40 bg-green-50 p-6 text-green-950 shadow-lg dark:bg-green-950 dark:text-green-50">
         <h2 className="mb-4 text-center text-2xl font-bold">{t.title}</h2>
         <dl className="space-y-3 text-center">
@@ -68,15 +73,30 @@ export function SuccessOverlay({
           >
             {t.improve}
           </button>
+          {showNextLevel && (
+            <button
+              type="button"
+              onClick={onContinue}
+              className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"
+            >
+              {t.next}
+            </button>
+          )}
           <button
             type="button"
-            onClick={onContinue}
-            className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"
+            onClick={onReturnHome}
+            className={cn(
+              "w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+              showNextLevel
+                ? "text-green-800 hover:bg-green-100/80 dark:text-green-200 dark:hover:bg-green-900/60"
+                : "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400",
+            )}
           >
-            {showNextLevel ? t.next : t.map}
+            {t.home}
           </button>
         </div>
       </div>
     </div>
+    </DialogPortal>
   );
 }

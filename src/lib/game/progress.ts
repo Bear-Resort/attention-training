@@ -131,3 +131,21 @@ export function subscribeProgress(callback: () => void) {
 export function getProgressSnapshot(): StoredProgress {
   return snapshot;
 }
+
+export function getCompletedLevelCount(): number {
+  return Object.keys(snapshot.levels).length;
+}
+
+export function getTotalBestSumSquaredDistances(): number {
+  return Object.values(snapshot.levels).reduce(
+    (total, level) => total + level.bestSumSquaredDistances,
+    0,
+  );
+}
+
+export function resetProgress() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(STORAGE_KEY);
+  snapshot = EMPTY_PROGRESS;
+  listeners.forEach((listener) => listener());
+}

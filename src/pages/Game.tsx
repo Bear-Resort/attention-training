@@ -96,8 +96,10 @@ function GamePlay({ levelId }: GamePlayProps) {
   const handleContinue = () => {
     if (hasNextLevel && nextLevelId !== null) {
       navigate(`/game/${nextLevelId}`);
-      return;
     }
+  };
+
+  const handleReturnHome = () => {
     navigate("/");
   };
 
@@ -166,6 +168,7 @@ function GamePlay({ levelId }: GamePlayProps) {
           sumSquaredDistances={result.sumSquaredDistances}
           onKeepImproving={dismissSuccessOverlay}
           onContinue={handleContinue}
+          onReturnHome={handleReturnHome}
           showNextLevel={hasNextLevel}
         />
       )}
@@ -181,5 +184,5 @@ export function Game() {
     return <Navigate to="/" replace />;
   }
 
-  return <GamePlay levelId={levelId} />;
+  return <GamePlay key={levelId} levelId={levelId} />;
 }

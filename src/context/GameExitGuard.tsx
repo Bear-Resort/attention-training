@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { DialogPortal } from "@/components/ui/dialog-portal";
 import { useLanguage } from "@/lib/useLanguage";
 
 type GameExitGuardContextValue = {
@@ -41,7 +42,8 @@ function ExitWarningDialog({ onConfirm, onCancel }: ExitWarningDialogProps) {
   const t = copy[language];
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm">
+    <DialogPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
@@ -70,6 +72,7 @@ function ExitWarningDialog({ onConfirm, onCancel }: ExitWarningDialogProps) {
         </div>
       </div>
     </div>
+    </DialogPortal>
   );
 }
 
