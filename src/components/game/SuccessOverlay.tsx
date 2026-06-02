@@ -2,6 +2,7 @@ import { formatDuration, formatMetric } from "@/lib/game/metrics";
 import { DialogPortal } from "@/components/ui/dialog-portal";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/useLanguage";
+import { useEffect } from "react";
 
 type SuccessOverlayProps = {
   elapsedMs: number;
@@ -31,6 +32,14 @@ const copy = {
   },
 };
 
+function HotkeyBadge({ children }: { children: string }) {
+  return (
+    <kbd className="rounded border border-green-600/30 bg-green-100/80 px-1.5 py-0.5 text-xs font-normal text-green-800 dark:border-green-400/30 dark:bg-green-900/60 dark:text-green-100">
+      {children}
+    </kbd>
+  );
+}
+
 export function SuccessOverlay({
   elapsedMs,
   sumSquaredDistances,
@@ -41,6 +50,31 @@ export function SuccessOverlay({
 }: SuccessOverlayProps) {
   const language = useLanguage();
   const t = copy[language];
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "1") {
+        event.preventDefault();
+        onKeepImproving();
+        return;
+      }
+
+      if (event.key === "2") {
+        event.preventDefault();
+        if (showNextLevel) onContinue();
+        else onReturnHome();
+        return;
+      }
+
+      if (event.key === "3" && showNextLevel) {
+        event.preventDefault();
+        onReturnHome();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onKeepImproving, onContinue, onReturnHome, showNextLevel]);
 
   return (
     <DialogPortal>
@@ -69,30 +103,33 @@ export function SuccessOverlay({
           <button
             type="button"
             onClick={onKeepImproving}
-            className="w-full rounded-lg border border-green-600/40 px-4 py-2 text-sm font-medium text-green-900 transition-colors hover:bg-green-100 dark:border-green-400/40 dark:text-green-50 dark:hover:bg-green-900"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-green-600/40 px-4 py-2 text-sm font-medium text-green-900 transition-colors hover:bg-green-100 dark:border-green-400/40 dark:text-green-50 dark:hover:bg-green-900"
           >
             {t.improve}
+            <HotkeyBadge>1</HotkeyBadge>
           </button>
           {showNextLevel && (
             <button
               type="button"
               onClick={onContinue}
-              className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"
             >
               {t.next}
+              <HotkeyBadge>2</HotkeyBadge>
             </button>
           )}
           <button
             type="button"
             onClick={onReturnHome}
             className={cn(
-              "w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+              "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               showNextLevel
                 ? "text-green-800 hover:bg-green-100/80 dark:text-green-200 dark:hover:bg-green-900/60"
                 : "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400",
             )}
           >
             {t.home}
+            <HotkeyBadge>{showNextLevel ? "3" : "2"}</HotkeyBadge>
           </button>
         </div>
       </div>

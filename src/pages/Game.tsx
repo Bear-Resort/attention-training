@@ -1,20 +1,31 @@
 import { FunctionInput } from "@/components/game/FunctionInput";
+import {
+  MediumHintButton,
+  MediumLevelHintDialog,
+} from "@/components/game/MediumLevelHint";
 import { Plot } from "@/components/game/Plot";
 import { SuccessOverlay } from "@/components/game/SuccessOverlay";
 import { Header } from "@/components/Header";
-import { GameExitGuardProvider } from "@/context/GameExitGuard";
+import { GameExitGuardProvider, useGameExitGuard } from "@/context/GameExitGuard";
 import { useGameLevel } from "@/hooks/useGameLevel";
 import {
+  FIRST_MEDIUM_LEVEL,
   getLevelDifficulty,
   getNextLevelId,
+  getPreviousLevelId,
+  isMediumNoiseLevel,
   isValidLevelId,
   type LevelDifficulty,
 } from "@/lib/game/levels";
-import { isLevelUnlocked } from "@/lib/game/progress";
+import { DEBUG_SHOW_CLASSIFICATION_DISKS } from "@/lib/game/constants";
+import { hasSeenMediumHint } from "@/lib/game/mediumHint";
+import { isLevelCompleted, isLevelUnlocked } from "@/lib/game/progress";
 import { formatMetric, formatTimerSeconds } from "@/lib/game/metrics";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/useLanguage";
+import { useProgress } from "@/lib/useProgress";
 import { Timer } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 const copy = {
@@ -28,6 +39,8 @@ const copy = {
     best: "Best",
     newBest: "New Best",
     firstTime: "First time",
+    previousLevel: "Previous level",
+    nextLevel: "Next level",
   },
   zh: {
     subtitle: "找到红蓝点之间的分界线。",
@@ -39,6 +52,8 @@ const copy = {
     best: "最佳",
     newBest: "新最佳",
     firstTime: "首次用时",
+    previousLevel: "上一关",
+    nextLevel: "下一关",
   },
 };
 
@@ -59,16 +74,34 @@ type GamePlayProps = {
 };
 
 function GamePlay({ levelId }: GamePlayProps) {
+  const gameState = useGameLevel(levelId);
+
+  return (
+    <GameExitGuardProvider active={!gameState.hasWon}>
+      <GamePlayContent levelId={levelId} gameState={gameState} />
+    </GameExitGuardProvider>
+  );
+}
+
+type GamePlayContentProps = {
+  levelId: number;
+  gameState: ReturnType<typeof useGameLevel>;
+};
+
+function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
   const language = useLanguage();
   const t = copy[language];
   const navigate = useNavigate();
+  const { requestExit } = useGameExitGuard();
+  const [mediumHintOpen, setMediumHintOpen] = useState(false);
+  useProgress();
   const {
     level,
+    animatedPoints,
     input,
     setInput,
     guess,
     hasError,
-    hasWon,
     showSuccessOverlay,
     elapsedMs,
     result,
@@ -78,15 +111,30 @@ function GamePlay({ levelId }: GamePlayProps) {
     isWinningGuess,
     completionTimeMs,
     dismissSuccessOverlay,
-  } = useGameLevel(levelId);
+  } = gameState;
 
   const nextLevelId = getNextLevelId(levelId);
+  const prevLevelId = getPreviousLevelId(levelId);
+  const isCurrentCompleted = isLevelCompleted(levelId);
   const hasNextLevel =
     nextLevelId !== null && isLevelUnlocked(nextLevelId);
+  const canGoPrevious = prevLevelId !== null;
+  const canGoNext = nextLevelId !== null && isCurrentCompleted;
 
   const levelLabel =
     language === "en" ? `${t.level} ${levelId}` : `${t.level} ${levelId} 关`;
   const difficulty = getLevelDifficulty(levelId);
+  const showMediumHint = isMediumNoiseLevel(levelId);
+
+  useEffect(() => {
+    if (
+      levelId === FIRST_MEDIUM_LEVEL &&
+      showMediumHint &&
+      !hasSeenMediumHint()
+    ) {
+      setMediumHintOpen(true);
+    }
+  }, [levelId, showMediumHint]);
 
   const boxClassName =
     "inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold dark:border-gray-700";
@@ -103,8 +151,15 @@ function GamePlay({ levelId }: GamePlayProps) {
     navigate("/");
   };
 
+  const goToLevel = (targetLevelId: number) => {
+    requestExit(() => navigate(`/game/${targetLevelId}`));
+  };
+
+  const navButtonClassName =
+    "rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition-colors enabled:hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700";
+
   return (
-    <GameExitGuardProvider active={!hasWon}>
+    <>
       <Header />
       <div className="fade-in mx-auto w-full px-4 py-6 sm:w-[80%] sm:max-w-4xl">
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -122,6 +177,9 @@ function GamePlay({ levelId }: GamePlayProps) {
             >
               {t[difficulty]}
             </span>
+            {showMediumHint && (
+              <MediumHintButton onClick={() => setMediumHintOpen(true)} />
+            )}
           </span>
           <span
             className={cn(boxClassName, "tabular-nums")}
@@ -141,9 +199,15 @@ function GamePlay({ levelId }: GamePlayProps) {
           />
           <Plot
             domain={level.domain}
-            points={level.points}
+            points={animatedPoints}
             guess={guess}
             isValid={isWinningGuess}
+            showMotionDisks={false}
+            motionDiskRadius={level.toleranceRadius}
+            anchorPoints={level.toleranceRadius > 0 ? level.points : undefined}
+            debugClassificationDisks={
+              DEBUG_SHOW_CLASSIFICATION_DISKS && level.toleranceRadius > 0
+            }
           />
           {isWinningGuess && currentDistance !== null && (
             <div className="flex items-center justify-between text-sm font-medium text-green-700 dark:text-green-400">
@@ -159,6 +223,28 @@ function GamePlay({ levelId }: GamePlayProps) {
               </span>
             </div>
           )}
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              disabled={!canGoPrevious}
+              onClick={() =>
+                prevLevelId !== null && goToLevel(prevLevelId)
+              }
+              className={navButtonClassName}
+            >
+              {t.previousLevel}
+            </button>
+            <button
+              type="button"
+              disabled={!canGoNext}
+              onClick={() =>
+                nextLevelId !== null && goToLevel(nextLevelId)
+              }
+              className={navButtonClassName}
+            >
+              {t.nextLevel}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -172,7 +258,12 @@ function GamePlay({ levelId }: GamePlayProps) {
           showNextLevel={hasNextLevel}
         />
       )}
-    </GameExitGuardProvider>
+
+      <MediumLevelHintDialog
+        open={mediumHintOpen}
+        onClose={() => setMediumHintOpen(false)}
+      />
+    </>
   );
 }
 

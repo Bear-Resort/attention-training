@@ -1,30 +1,10 @@
-export const TOTAL_LEVELS = 20;
+export const TOTAL_LEVELS = 40;
+
+export const FIRST_MEDIUM_LEVEL = 22;
 
 export type LevelDifficulty = "easy" | "medium" | "hard";
 
-// 10 easy, 5 medium, 5 hard — interleaved across all 20 levels
-const LEVEL_DIFFICULTIES: LevelDifficulty[] = [
-  "easy",
-  "easy",
-  "medium",
-  "easy",
-  "hard",
-  "easy",
-  "medium",
-  "easy",
-  "easy",
-  "hard",
-  "medium",
-  "easy",
-  "hard",
-  "easy",
-  "medium",
-  "easy",
-  "hard",
-  "easy",
-  "medium",
-  "hard",
-];
+const MEDIUM_MOD_VALUES = new Set([2, 5, 8]);
 
 export function isValidLevelId(levelId: number): boolean {
   return Number.isInteger(levelId) && levelId >= 1 && levelId <= TOTAL_LEVELS;
@@ -35,6 +15,18 @@ export function getNextLevelId(levelId: number): number | null {
   return levelId + 1;
 }
 
+export function getPreviousLevelId(levelId: number): number | null {
+  if (!isValidLevelId(levelId) || levelId <= 1) return null;
+  return levelId - 1;
+}
+
+export function isMediumNoiseLevel(levelId: number): boolean {
+  if (!isValidLevelId(levelId) || levelId <= 20) return false;
+  return MEDIUM_MOD_VALUES.has(levelId % 10);
+}
+
 export function getLevelDifficulty(levelId: number): LevelDifficulty {
-  return LEVEL_DIFFICULTIES[levelId - 1] ?? "easy";
+  if (!isValidLevelId(levelId)) return "easy";
+  if (isMediumNoiseLevel(levelId)) return "medium";
+  return "easy";
 }

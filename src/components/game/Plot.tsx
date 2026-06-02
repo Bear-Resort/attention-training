@@ -10,6 +10,11 @@ type PlotProps = {
   points: GamePoint[];
   guess?: Evaluator | null;
   isValid?: boolean;
+  showMotionDisks?: boolean;
+  motionDiskRadius?: number;
+  anchorPoints?: GamePoint[];
+  /** Draw tolerance disks at current point positions (debug). */
+  debugClassificationDisks?: boolean;
 };
 
 function scaleX(x: number, domain: Domain): number {
@@ -101,7 +106,52 @@ function buildCurvePath(
   return segments.join(" ");
 }
 
-export function Plot({ domain, points, guess, isValid = false }: PlotProps) {
+function radiusToPx(
+  centerX: number,
+  radius: number,
+  domain: Domain,
+): number {
+  return Math.abs(scaleX(centerX + radius, domain) - scaleX(centerX, domain));
+}
+
+function ClassificationDisk({
+  cx,
+  cy,
+  radiusPx,
+  variant,
+}: {
+  cx: number;
+  cy: number;
+  radiusPx: number;
+  variant: "outer" | "inner";
+}) {
+  const strokeClass =
+    variant === "outer"
+      ? "stroke-violet-500/80 dark:stroke-violet-400/80"
+      : "stroke-violet-400/50 dark:stroke-violet-300/50";
+
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={radiusPx}
+      className={`fill-none ${strokeClass}`}
+      strokeWidth={variant === "outer" ? 1.5 : 1}
+      strokeDasharray={variant === "outer" ? "4 3" : "2 3"}
+    />
+  );
+}
+
+export function Plot({
+  domain,
+  points,
+  guess,
+  isValid = false,
+  showMotionDisks = false,
+  motionDiskRadius = 1,
+  anchorPoints,
+  debugClassificationDisks = false,
+}: PlotProps) {
   const xTicks = buildTicks(domain.xMin, domain.xMax, 10);
   const yTicks = buildTicks(domain.yMin, domain.yMax, 8);
   const xStep = niceStep(domain.xMax - domain.xMin, 10);
@@ -205,9 +255,56 @@ export function Plot({ domain, points, guess, isValid = false }: PlotProps) {
           />
         )}
 
+        {showMotionDisks &&
+          anchorPoints?.map((anchor, index) => {
+            const cx = scaleX(anchor.x, domain);
+            const cy = scaleY(anchor.y, domain);
+            const radiusPx = radiusToPx(anchor.x, motionDiskRadius, domain);
+
+            return (
+              <circle
+                key={`motion-disk-${index}`}
+                cx={cx}
+                cy={cy}
+                r={radiusPx}
+                className="fill-none stroke-border/50"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+              />
+            );
+          })}
+
+        {debugClassificationDisks &&
+          anchorPoints?.map((anchor, index) => {
+            const diskRadius = anchor.motion?.radius ?? motionDiskRadius;
+            if (diskRadius <= 0) return null;
+
+            const cx = scaleX(anchor.x, domain);
+            const cy = scaleY(anchor.y, domain);
+            const outerPx = radiusToPx(anchor.x, diskRadius, domain);
+            const innerPx = outerPx / 2;
+
+            return (
+              <g key={`classification-disk-${index}`}>
+                <ClassificationDisk
+                  cx={cx}
+                  cy={cy}
+                  radiusPx={outerPx}
+                  variant="outer"
+                />
+                <ClassificationDisk
+                  cx={cx}
+                  cy={cy}
+                  radiusPx={innerPx}
+                  variant="inner"
+                />
+              </g>
+            );
+          })}
+
         {points.map((point, index) => (
           <circle
-            key={`${point.x}-${point.y}-${index}`}
+            key={`point-${index}`}
             cx={scaleX(point.x, domain)}
             cy={scaleY(point.y, domain)}
             r={4}

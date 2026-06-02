@@ -18,14 +18,14 @@ const copy = {
     levelsHint: "More levels to come",
     distance: "Total sum of squared distances",
     distanceHint:
-      "JG might add a leader board, just maybe... Bar fills toward 500,000 (25,000 × 20 levels).",
+      "JG might add a leader board, just maybe...",
   },
   zh: {
     levels: "已通过关卡",
     levelsHint: "更多关卡即将到来",
     distance: "距离平方和总计",
     distanceHint:
-      "JG 也许会加个排行榜，大概吧……进度条满格为 500,000（25,000 × 20 关）。",
+      "JG 也许会加个排行榜，大概吧……",
   },
 };
 

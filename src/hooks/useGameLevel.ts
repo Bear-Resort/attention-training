@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { checkWin } from "@/lib/game/checkWin";
+import { checkWin, checkWinThroughoutMotion } from "@/lib/game/checkWin";
 import { parseExpression, isValidExpression } from "@/lib/game/expression";
 import { generateLevel } from "@/lib/game/generateLevel";
+import { getAnimatedPoints } from "@/lib/game/pointMotion";
 import {
   clearFunctionDraft,
   getFunctionDraft,
@@ -29,11 +30,30 @@ export function useGameLevel(levelId: number) {
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [completionTimeMs, setCompletionTimeMs] = useState<number | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
+  const [animationTimeMs, setAnimationTimeMs] = useState(() => Date.now());
   const sessionBaselineBestRef = useRef<number | null>(null);
 
   useProgress();
   const storedBestDistance =
     getLevelBest(levelId)?.bestSumSquaredDistances ?? null;
+
+  const animatedPoints = useMemo(() => {
+    if (level.toleranceRadius <= 0) return level.points;
+    return getAnimatedPoints(level.points, animationTimeMs);
+  }, [level.points, level.toleranceRadius, animationTimeMs]);
+
+  useEffect(() => {
+    if (level.toleranceRadius <= 0) return;
+
+    let frameId = 0;
+    const tick = () => {
+      setAnimationTimeMs(Date.now());
+      frameId = window.requestAnimationFrame(tick);
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [level.toleranceRadius, levelId]);
 
   const guess = useMemo(
     () => (isValidExpression(input) ? parseExpression(input) : null),
@@ -42,10 +62,17 @@ export function useGameLevel(levelId: number) {
   const hasInput = input.trim().length > 0;
   const hasError = hasInput && guess === null;
 
-  const isWinningGuess = useMemo(
-    () => guess !== null && checkWin(guess, level.points),
-    [guess, level.points],
-  );
+  const isWinningGuess = useMemo(() => {
+    if (!guess) return false;
+    if (level.toleranceRadius <= 0) {
+      return checkWin(guess, level.points, 0);
+    }
+    return checkWinThroughoutMotion(
+      guess,
+      level.points,
+      level.toleranceRadius,
+    );
+  }, [guess, level.points, level.toleranceRadius]);
 
   const currentDistance = useMemo(() => {
     if (!isWinningGuess || !guess) return null;
@@ -162,6 +189,7 @@ export function useGameLevel(levelId: number) {
 
   return {
     level,
+    animatedPoints,
     input,
     setInput,
     guess,
