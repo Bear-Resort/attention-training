@@ -1,24 +1,25 @@
 import { FunctionInput } from "@/components/game/FunctionInput";
-import {
-  MediumHintButton,
-  MediumLevelHintDialog,
-} from "@/components/game/MediumLevelHint";
+import { LevelHintButton, LevelHintDialog } from "@/components/game/LevelHints";
 import { Plot } from "@/components/game/Plot";
 import { SuccessOverlay } from "@/components/game/SuccessOverlay";
 import { Header } from "@/components/Header";
 import { GameExitGuardProvider, useGameExitGuard } from "@/context/GameExitGuard";
 import { useGameLevel } from "@/hooks/useGameLevel";
+import { DEBUG_SHOW_CLASSIFICATION_DISKS } from "@/lib/game/constants";
 import {
+  FIRST_HARD_LEVEL,
+  FIRST_MEGA_LEVEL,
   FIRST_MEDIUM_LEVEL,
   getLevelDifficulty,
   getNextLevelId,
   getPreviousLevelId,
+  isHardHiddenLevel,
   isMediumNoiseLevel,
+  isMegaStagedLevel,
   isValidLevelId,
   type LevelDifficulty,
 } from "@/lib/game/levels";
-import { DEBUG_SHOW_CLASSIFICATION_DISKS } from "@/lib/game/constants";
-import { hasSeenMediumHint } from "@/lib/game/mediumHint";
+import { hasSeenLevelHint, type SpecialLevelHint } from "@/lib/game/levelHints";
 import { isLevelCompleted, isLevelUnlocked } from "@/lib/game/progress";
 import { formatMetric, formatTimerSeconds } from "@/lib/game/metrics";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const copy = {
     easy: "Easy",
     medium: "Medium",
     hard: "Hard",
+    mega: "Mega",
     distance: "Sum of squared distances",
     best: "Best",
     newBest: "New Best",
@@ -48,6 +50,7 @@ const copy = {
     easy: "简单",
     medium: "中等",
     hard: "困难",
+    mega: "超级",
     distance: "距离平方和",
     best: "最佳",
     newBest: "新最佳",
@@ -61,13 +64,28 @@ const difficultyDot: Record<LevelDifficulty, string> = {
   easy: "bg-green-500",
   medium: "bg-blue-500",
   hard: "bg-purple-500",
+  mega: "bg-red-500",
 };
 
 const difficultyText: Record<LevelDifficulty, string> = {
   easy: "text-green-700 dark:text-green-400",
   medium: "text-blue-700 dark:text-blue-400",
   hard: "text-purple-700 dark:text-purple-400",
+  mega: "text-red-700 dark:text-red-400",
 };
+
+function getHintVariant(levelId: number): SpecialLevelHint | null {
+  if (isMediumNoiseLevel(levelId)) return "medium";
+  if (isHardHiddenLevel(levelId)) return "hard";
+  if (isMegaStagedLevel(levelId)) return "mega";
+  return null;
+}
+
+function getFirstLevelForHint(variant: SpecialLevelHint): number {
+  if (variant === "medium") return FIRST_MEDIUM_LEVEL;
+  if (variant === "hard") return FIRST_HARD_LEVEL;
+  return FIRST_MEGA_LEVEL;
+}
 
 type GamePlayProps = {
   levelId: number;
@@ -93,11 +111,11 @@ function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
   const t = copy[language];
   const navigate = useNavigate();
   const { requestExit } = useGameExitGuard();
-  const [mediumHintOpen, setMediumHintOpen] = useState(false);
+  const [hintOpen, setHintOpen] = useState(false);
   useProgress();
   const {
     level,
-    animatedPoints,
+    visiblePoints,
     input,
     setInput,
     guess,
@@ -124,17 +142,17 @@ function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
   const levelLabel =
     language === "en" ? `${t.level} ${levelId}` : `${t.level} ${levelId} 关`;
   const difficulty = getLevelDifficulty(levelId);
-  const showMediumHint = isMediumNoiseLevel(levelId);
+  const hintVariant = getHintVariant(levelId);
 
   useEffect(() => {
+    if (!hintVariant) return;
     if (
-      levelId === FIRST_MEDIUM_LEVEL &&
-      showMediumHint &&
-      !hasSeenMediumHint()
+      levelId === getFirstLevelForHint(hintVariant) &&
+      !hasSeenLevelHint(hintVariant)
     ) {
-      setMediumHintOpen(true);
+      setHintOpen(true);
     }
-  }, [levelId, showMediumHint]);
+  }, [levelId, hintVariant]);
 
   const boxClassName =
     "inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold dark:border-gray-700";
@@ -177,8 +195,11 @@ function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
             >
               {t[difficulty]}
             </span>
-            {showMediumHint && (
-              <MediumHintButton onClick={() => setMediumHintOpen(true)} />
+            {hintVariant && (
+              <LevelHintButton
+                variant={hintVariant}
+                onClick={() => setHintOpen(true)}
+              />
             )}
           </span>
           <span
@@ -199,7 +220,7 @@ function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
           />
           <Plot
             domain={level.domain}
-            points={animatedPoints}
+            points={visiblePoints}
             guess={guess}
             isValid={isWinningGuess}
             showMotionDisks={false}
@@ -259,10 +280,13 @@ function GamePlayContent({ levelId, gameState }: GamePlayContentProps) {
         />
       )}
 
-      <MediumLevelHintDialog
-        open={mediumHintOpen}
-        onClose={() => setMediumHintOpen(false)}
-      />
+      {hintVariant && (
+        <LevelHintDialog
+          variant={hintVariant}
+          open={hintOpen}
+          onClose={() => setHintOpen(false)}
+        />
+      )}
     </>
   );
 }

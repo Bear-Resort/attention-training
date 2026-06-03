@@ -25,22 +25,24 @@ const VIEWPORT_PADDING = 8;
 
 const copy = {
   en: {
-    heading: "Levels",
+    heading: "Basic Levels",
     locked: "Complete the previous level first",
     bestTime: "First time",
     bestDistance: "Best sum of squared distances",
     easy: "Easy",
     medium: "Medium",
     hard: "Hard",
+    mega: "Mega",
   },
   zh: {
-    heading: "关卡",
+    heading: "基础关卡",
     locked: "请先完成上一关",
     bestTime: "首次用时",
     bestDistance: "最佳距离平方和",
     easy: "简单",
     medium: "中等",
     hard: "困难",
+    mega: "超级",
   },
 };
 
@@ -49,6 +51,7 @@ const difficultyStyles: Record<LevelDifficulty, string> = {
   medium:
     "border-blue-500/70 bg-blue-100 text-blue-900 dark:bg-blue-950/70 dark:text-blue-100",
   hard: "border-purple-500/70 bg-purple-100 text-purple-900 dark:bg-purple-950/70 dark:text-purple-100",
+  mega: "border-red-500/70 bg-red-100 text-red-900 dark:bg-red-950/70 dark:text-red-100",
 };
 
 type TooltipPosition = {

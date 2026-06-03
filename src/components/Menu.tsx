@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useGameExitGuard } from "@/context/GameExitGuard";
 import { clearAllFunctionDrafts } from "@/lib/game/functionDraft";
-import { clearMediumHintSeen } from "@/lib/game/mediumHint";
+import { clearAllLevelHints } from "@/lib/game/levelHints";
 import { resetProgress } from "@/lib/game/progress";
 import { toggleLanguage } from "@/lib/language";
 import { useLanguage } from "@/lib/useLanguage";
@@ -107,7 +107,7 @@ export function Menu() {
   const handleResetConfirm = () => {
     resetProgress();
     clearAllFunctionDrafts();
-    clearMediumHintSeen();
+    clearAllLevelHints();
     setResetDialogOpen(false);
     navigate("/");
   };

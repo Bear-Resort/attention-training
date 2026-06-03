@@ -66,6 +66,20 @@ export function checkWin(
   return true;
 }
 
+export function isPointMisclassified(
+  guess: Evaluator,
+  point: GamePoint,
+  toleranceRadius = 0,
+): boolean {
+  const diskRadius = getClassificationDiskRadius(point, toleranceRadius);
+
+  if (diskRadius > 0) {
+    return !checkPointDisk(guess, point, diskRadius);
+  }
+
+  return !matchesColor(guess, point.x, point.y, point.color);
+}
+
 function checkAnimatedCenters(
   guess: Evaluator,
   animatedPoints: GamePoint[],

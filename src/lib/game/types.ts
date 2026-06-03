@@ -1,5 +1,9 @@
 export type PointColor = "blue" | "red";
 
+export type PointRegion = "left" | "middle" | "right";
+
+export type LevelVariant = "standard" | "hidden-reveal" | "mega-staged";
+
 export type PointMotion = {
   phase: number;
   phase2: number;
@@ -13,6 +17,7 @@ export type GamePoint = {
   y: number;
   color: PointColor;
   motion?: PointMotion;
+  region?: PointRegion;
 };
 
 export type Domain = {
@@ -29,12 +34,19 @@ export type HiddenFunction = {
   evaluate: (x: number) => number;
 };
 
+export type MegaSplit = {
+  leftMax: number;
+  rightMin: number;
+};
+
 export type Level = {
   id: number;
   target: HiddenFunction;
   points: GamePoint[];
   domain: Domain;
   toleranceRadius: number;
+  variant: LevelVariant;
+  megaSplit?: MegaSplit;
 };
 
 export type Evaluator = (x: number) => number;

@@ -1,4 +1,4 @@
-import { isValidLevelId, TOTAL_LEVELS } from "./levels";
+import { INFINITY_UNLOCK_LEVEL, isValidLevelId, TOTAL_LEVELS } from "./levels";
 
 export type LevelBest = {
   bestTimeMs: number;
@@ -7,6 +7,7 @@ export type LevelBest = {
 
 type StoredProgress = {
   levels: Record<string, LevelBest>;
+  infinityScore?: number;
 };
 
 const STORAGE_KEY = "attention-training-progress";
@@ -33,9 +34,12 @@ function refreshSnapshot() {
   snapshot = loadSnapshotFromStorage();
 }
 
-function writeProgress(progress: StoredProgress) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  snapshot = progress;
+function writeProgress(partial: Partial<StoredProgress>) {
+  snapshot = {
+    levels: partial.levels ?? snapshot.levels,
+    infinityScore: partial.infinityScore ?? snapshot.infinityScore,
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   listeners.forEach((listener) => listener());
 }
 
@@ -141,6 +145,27 @@ export function getTotalBestSumSquaredDistances(): number {
     (total, level) => total + level.bestSumSquaredDistances,
     0,
   );
+}
+
+export function getTotalFirstTrialTimeMs(): number {
+  return Object.values(snapshot.levels).reduce(
+    (total, level) => total + level.bestTimeMs,
+    0,
+  );
+}
+
+export function isInfinityUnlocked(): boolean {
+  return isLevelCompleted(INFINITY_UNLOCK_LEVEL);
+}
+
+export function getInfinityScore(): number {
+  return snapshot.infinityScore ?? 0;
+}
+
+export function addInfinityScore(points: number): number {
+  const next = getInfinityScore() + points;
+  writeProgress({ infinityScore: next });
+  return next;
 }
 
 export function resetProgress() {

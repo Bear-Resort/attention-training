@@ -11,6 +11,10 @@ type SuccessOverlayProps = {
   onContinue: () => void;
   onReturnHome: () => void;
   showNextLevel: boolean;
+  infinityScoreEarned?: number;
+  totalInfinityScore?: number;
+  hideKeepImproving?: boolean;
+  continueLabel?: string;
 };
 
 const copy = {
@@ -20,7 +24,10 @@ const copy = {
     distance: "Best sum of squared distances",
     improve: "Keep improving",
     next: "Next level",
+    nextRandom: "Next random level",
     home: "Return to home",
+    infinityScore: "Infinity score earned",
+    totalInfinityScore: "Total infinity score",
   },
   zh: {
     title: "关卡完成",
@@ -28,7 +35,10 @@ const copy = {
     distance: "最佳距离平方和",
     improve: "继续优化",
     next: "下一关",
+    nextRandom: "下一随机关卡",
     home: "返回首页",
+    infinityScore: "无限模式得分",
+    totalInfinityScore: "无限分数总计",
   },
 };
 
@@ -47,6 +57,10 @@ export function SuccessOverlay({
   onContinue,
   onReturnHome,
   showNextLevel,
+  infinityScoreEarned,
+  totalInfinityScore,
+  hideKeepImproving = false,
+  continueLabel,
 }: SuccessOverlayProps) {
   const language = useLanguage();
   const t = copy[language];
@@ -55,18 +69,21 @@ export function SuccessOverlay({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "1") {
         event.preventDefault();
-        onKeepImproving();
+        if (hideKeepImproving && showNextLevel) onContinue();
+        else if (!hideKeepImproving) onKeepImproving();
+        else onReturnHome();
         return;
       }
 
       if (event.key === "2") {
         event.preventDefault();
-        if (showNextLevel) onContinue();
+        if (hideKeepImproving) onReturnHome();
+        else if (showNextLevel) onContinue();
         else onReturnHome();
         return;
       }
 
-      if (event.key === "3" && showNextLevel) {
+      if (event.key === "3" && showNextLevel && !hideKeepImproving) {
         event.preventDefault();
         onReturnHome();
       }
@@ -74,7 +91,7 @@ export function SuccessOverlay({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onKeepImproving, onContinue, onReturnHome, showNextLevel]);
+  }, [onKeepImproving, onContinue, onReturnHome, showNextLevel, hideKeepImproving]);
 
   return (
     <DialogPortal>
@@ -98,24 +115,42 @@ export function SuccessOverlay({
               {formatMetric(sumSquaredDistances)}
             </dd>
           </div>
+          {infinityScoreEarned !== undefined && (
+            <div>
+              <dt className="text-sm text-green-800 dark:text-green-200">
+                {t.infinityScore}
+              </dt>
+              <dd className="text-xl font-semibold">+{infinityScoreEarned}</dd>
+            </div>
+          )}
+          {totalInfinityScore !== undefined && (
+            <div>
+              <dt className="text-sm text-green-800 dark:text-green-200">
+                {t.totalInfinityScore}
+              </dt>
+              <dd className="text-xl font-semibold">{totalInfinityScore}</dd>
+            </div>
+          )}
         </dl>
         <div className="mt-6 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onKeepImproving}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-green-600/40 px-4 py-2 text-sm font-medium text-green-900 transition-colors hover:bg-green-100 dark:border-green-400/40 dark:text-green-50 dark:hover:bg-green-900"
-          >
-            {t.improve}
-            <HotkeyBadge>1</HotkeyBadge>
-          </button>
+          {!hideKeepImproving && (
+            <button
+              type="button"
+              onClick={onKeepImproving}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-green-600/40 px-4 py-2 text-sm font-medium text-green-900 transition-colors hover:bg-green-100 dark:border-green-400/40 dark:text-green-50 dark:hover:bg-green-900"
+            >
+              {t.improve}
+              <HotkeyBadge>1</HotkeyBadge>
+            </button>
+          )}
           {showNextLevel && (
             <button
               type="button"
               onClick={onContinue}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"
             >
-              {t.next}
-              <HotkeyBadge>2</HotkeyBadge>
+              {continueLabel ?? t.next}
+              <HotkeyBadge>{hideKeepImproving ? "1" : "2"}</HotkeyBadge>
             </button>
           )}
           <button
@@ -129,7 +164,9 @@ export function SuccessOverlay({
             )}
           >
             {t.home}
-            <HotkeyBadge>{showNextLevel ? "3" : "2"}</HotkeyBadge>
+            <HotkeyBadge>
+              {showNextLevel ? (hideKeepImproving ? "2" : "3") : hideKeepImproving ? "1" : "2"}
+            </HotkeyBadge>
           </button>
         </div>
       </div>

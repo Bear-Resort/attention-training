@@ -3,6 +3,7 @@ import { checkWin, checkWinThroughoutMotion } from "@/lib/game/checkWin";
 import { parseExpression, isValidExpression } from "@/lib/game/expression";
 import { generateLevel } from "@/lib/game/generateLevel";
 import { getAnimatedPoints } from "@/lib/game/pointMotion";
+import { getVisiblePoints } from "@/lib/game/pointVisibility";
 import {
   clearFunctionDraft,
   getFunctionDraft,
@@ -30,7 +31,7 @@ export function useGameLevel(levelId: number) {
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [completionTimeMs, setCompletionTimeMs] = useState<number | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
-  const [animationTimeMs, setAnimationTimeMs] = useState(() => Date.now());
+  const [animationTimeMs, setAnimationTimeMs] = useState(0);
   const sessionBaselineBestRef = useRef<number | null>(null);
 
   useProgress();
@@ -45,9 +46,12 @@ export function useGameLevel(levelId: number) {
   useEffect(() => {
     if (level.toleranceRadius <= 0) return;
 
+    const startMs = Date.now();
+    setAnimationTimeMs(0);
+
     let frameId = 0;
     const tick = () => {
-      setAnimationTimeMs(Date.now());
+      setAnimationTimeMs(Date.now() - startMs);
       frameId = window.requestAnimationFrame(tick);
     };
 
@@ -61,6 +65,11 @@ export function useGameLevel(levelId: number) {
   );
   const hasInput = input.trim().length > 0;
   const hasError = hasInput && guess === null;
+
+  const visiblePoints = useMemo(
+    () => getVisiblePoints(level, animatedPoints, guess),
+    [level, animatedPoints, guess],
+  );
 
   const isWinningGuess = useMemo(() => {
     if (!guess) return false;
@@ -133,7 +142,6 @@ export function useGameLevel(levelId: number) {
     saveFunctionDraft(levelId, input);
   }, [guess, input, levelId]);
 
-  // Whenever a current distance is shown, compare to localStorage and update if better.
   useEffect(() => {
     if (currentDistance === null || level.id !== levelId) return;
 
@@ -190,6 +198,7 @@ export function useGameLevel(levelId: number) {
   return {
     level,
     animatedPoints,
+    visiblePoints,
     input,
     setInput,
     guess,
